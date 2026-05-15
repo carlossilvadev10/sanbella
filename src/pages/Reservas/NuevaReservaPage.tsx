@@ -75,7 +75,10 @@ export default function NuevaReservaPage() {
 
     let usuarioServicioId: number | undefined
     if (formValues.especialistaId && formValues.especialistaId !== 'CUALQUIERA') {
-      const esp = slot?.especialistas?.find((e) => String(e.especialistaId) === String(formValues.especialistaId))
+      const sid = String(formValues.especialistaId)
+      const esp = slot?.especialistas?.find(
+        (e) => String(e.especialistaId) === sid || String(e.usuarioServicioId) === sid,
+      )
       usuarioServicioId = esp?.usuarioServicioId
     } else {
       usuarioServicioId = slot?.especialistas?.[0]?.usuarioServicioId

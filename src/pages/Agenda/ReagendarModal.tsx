@@ -53,12 +53,14 @@ export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: 
 
   const allSlots: SlotDisponibleResponse[] = disponibilidad?.slots ?? []
 
-  // Si eligió un especialista específico, filtra los slots que lo incluyan
+  // El id devuelto por loadEspecialista puede coincidir con especialistaId
+  // o con usuarioServicioId — chequeamos ambos para ser resilientes
+  const matchesSpecialist = (sid: string) => (e: { especialistaId: number; usuarioServicioId: number }) =>
+    String(e.especialistaId) === sid || String(e.usuarioServicioId) === sid
+
   const slots = !watchSpecialist || watchSpecialist === 'CUALQUIERA'
     ? allSlots
-    : allSlots.filter((s) =>
-        s.especialistas?.some((e) => String(e.especialistaId) === String(watchSpecialist)),
-      )
+    : allSlots.filter((s) => s.especialistas?.some(matchesSpecialist(watchSpecialist)))
 
   const handleClose = () => { form.reset(); onClose() }
 
@@ -68,9 +70,7 @@ export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: 
     let usuarioServicioId: number | undefined
 
     if (values.especialistaId && values.especialistaId !== 'CUALQUIERA') {
-      const esp = slot?.especialistas?.find(
-        (e) => String(e.especialistaId) === String(values.especialistaId),
-      )
+      const esp = slot?.especialistas?.find(matchesSpecialist(values.especialistaId))
       usuarioServicioId = esp?.usuarioServicioId
     } else {
       usuarioServicioId = slot?.especialistas?.[0]?.usuarioServicioId

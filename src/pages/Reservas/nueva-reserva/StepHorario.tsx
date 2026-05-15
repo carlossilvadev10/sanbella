@@ -58,11 +58,16 @@ export default function StepHorario({ values, onBack, onNext }: Props) {
 
   const allSlots: SlotDisponibleResponse[] = availability?.slots ?? []
 
-  // Si eligió un especialista específico, filtra slots que lo incluyan
+  // El id devuelto por loadEspecialista puede coincidir con especialistaId
+  // o con usuarioServicioId — chequeamos ambos para ser resilientes
   const slots = !watchEspecialista || watchEspecialista === 'CUALQUIERA'
     ? allSlots
     : allSlots.filter((s) =>
-        s.especialistas?.some((e) => String(e.especialistaId) === String(watchEspecialista)),
+        s.especialistas?.some(
+          (e) =>
+            String(e.especialistaId)    === String(watchEspecialista) ||
+            String(e.usuarioServicioId) === String(watchEspecialista),
+        ),
       )
 
   return (
