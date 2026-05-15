@@ -252,8 +252,8 @@ export interface CancelRequest {
   observacion?: string
 }
 
+// Matches ReagendarRequest exactly
 export interface RescheduleRequest {
-  fecha: string
-  especialistaId: string
-  slot: string
+  nuevaFecha:        string  // ISO datetime: "YYYY-MM-DDTHH:mm:ss"
+  usuarioServicioId: number
 }

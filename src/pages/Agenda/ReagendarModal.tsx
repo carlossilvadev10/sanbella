@@ -11,13 +11,15 @@ import { portalApi } from '@/api/reservaApi'
 import { fromCombo } from '@/utils/apiHelpers'
 import { formatDate } from '@/utils/helpers'
 
+// Formulario local: el usuario elige fecha + especialista + slot.
+// Al submit, lo transformamos al payload real { nuevaFecha, usuarioServicioId }.
 const schemaReagendar = z.object({
   fecha:          z.string().min(1, 'Selecciona una fecha'),
   especialistaId: z.string().min(1, 'Selecciona un especialista'),
   slot:           z.string().min(1, 'Selecciona un horario'),
 })
 
-type ReagendarValues = z.infer<typeof schemaReagendar>
+type Values = z.infer<typeof schemaReagendar>
 
 interface Props {
   reserva: ReservaDataGridResponse | null
@@ -27,7 +29,7 @@ interface Props {
 }
 
 export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: Props) {
-  const form = useForm<ReagendarValues>({ resolver: zodResolver(schemaReagendar) })
+  const form = useForm<Values>({ resolver: zodResolver(schemaReagendar) })
   const watchDate       = form.watch('fecha')
   const watchSpecialist = form.watch('especialistaId')
 
@@ -39,19 +41,52 @@ export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: 
     enabled:  !!reserva?.servicioId,
   })
 
+  // Sin especialistaId — el backend devuelve todos los slots con sus especialistas embebidos
   const { data: disponibilidad } = useQuery({
-    queryKey: ['availability-reschedule', reserva?.reservaId, watchDate, watchSpecialist],
+    queryKey: ['availability-reschedule', reserva?.reservaId, watchDate],
     queryFn:  () => portalApi.findDisponibilidad({
-      servicioId:     reserva!.servicioId,
-      fecha:          watchDate,
-      especialistaId: watchSpecialist ? Number(watchSpecialist) : undefined,
+      servicioId: reserva!.servicioId,
+      fecha:      watchDate,
     }).then((r) => r.data),
     enabled: !!(reserva && watchDate),
   })
 
-  const slots: SlotDisponibleResponse[] = disponibilidad?.slots ?? []
+  const allSlots: SlotDisponibleResponse[] = disponibilidad?.slots ?? []
+
+  // Si eligió un especialista específico, filtra los slots que lo incluyan
+  const slots = !watchSpecialist || watchSpecialist === 'CUALQUIERA'
+    ? allSlots
+    : allSlots.filter((s) =>
+        s.especialistas?.some((e) => String(e.especialistaId) === String(watchSpecialist)),
+      )
 
   const handleClose = () => { form.reset(); onClose() }
+
+  const handleSubmit = (values: Values) => {
+    // Buscamos el slot elegido para obtener el usuarioServicioId del especialista
+    const slot = allSlots.find((s) => s.hora === values.slot)
+    let usuarioServicioId: number | undefined
+
+    if (values.especialistaId && values.especialistaId !== 'CUALQUIERA') {
+      const esp = slot?.especialistas?.find(
+        (e) => String(e.especialistaId) === String(values.especialistaId),
+      )
+      usuarioServicioId = esp?.usuarioServicioId
+    } else {
+      usuarioServicioId = slot?.especialistas?.[0]?.usuarioServicioId
+    }
+
+    if (!usuarioServicioId) {
+      form.setError('slot', { message: 'No se pudo determinar el especialista para este horario.' })
+      return
+    }
+
+    // Combinamos fecha + hora como datetime ISO
+    const hora       = values.slot.length === 5 ? `${values.slot}:00` : values.slot
+    const nuevaFecha = `${values.fecha}T${hora}`
+
+    onSubmit({ nuevaFecha, usuarioServicioId })
+  }
 
   return (
     <Modal
@@ -64,7 +99,7 @@ export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: 
           <button className="btn-secondary" onClick={handleClose}>Cancelar</button>
           <button
             className="btn-primary"
-            onClick={form.handleSubmit(onSubmit)}
+            onClick={form.handleSubmit(handleSubmit)}
             disabled={loading}
           >
             {loading ? <Spinner size="sm" className="text-white" /> : 'Confirmar reagendamiento'}
@@ -97,6 +132,7 @@ export default function ReagendarModal({ reserva, loading, onClose, onSubmit }: 
             className={`input ${form.formState.errors.especialistaId ? 'input-error' : ''}`}
           >
             <option value="">Selecciona un especialista...</option>
+            <option value="CUALQUIERA">Cualquiera / Predeterminado</option>
             {(specialists as ComboResponse[]).map((e) => (
               <option key={e.id} value={String(e.id)}>{e.nombre} {e.apellidos ?? ''}</option>
             ))}
