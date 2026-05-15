@@ -248,7 +248,7 @@ export interface PaymentRequest {
 }
 
 export interface CancelRequest {
-  motivoAnulacionId: string
+  motivoAnulacionId?: string
   observacion?: string
 }
 
