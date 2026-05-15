@@ -1,5 +1,7 @@
 # Sanbella — Sistema Web de Reservas
 
+[![Live demo](https://img.shields.io/badge/🚀_Demo_en_vivo-sanbella.vercel.app-brightgreen?style=for-the-badge)](https://sanbella.vercel.app)
+
 Frontend del sistema de reservas de citas Sanbella. Implementación de los tres requerimientos solicitados como parte de la evaluación técnica para LVL Consulting:
 
 1. **Registro de reserva** — flujo de creación de nuevas reservas
@@ -261,8 +263,9 @@ Administración completa de usuarios del sistema:
 
 ### Autenticación
 
-**Login**
-![Login](docs/screenshots/01-login.png)
+**Login** — _Click en la imagen para abrir el demo en vivo_
+
+[![Login](docs/screenshots/01-login.png)](https://sanbella.vercel.app)
 
 ### Registro de reserva (HU-OPER-002)
 
