@@ -11,7 +11,8 @@ import {
   ComboResponse, CancelRequest, RescheduleRequest,
 } from '@/types'
 import {
-  LoadingScreen, EmptyState, StatusBadge, Alert, Pagination, ConfirmDialog,
+  LoadingScreen, EmptyState, StatusBadge, Pagination, ConfirmDialog,
+  ToastContainer, useToast,
 } from '@/components/ui'
 
 import {
@@ -36,8 +37,7 @@ export default function AgendaPage() {
   const [rescheduleTarget, setRescheduleTarget] = useState<ReservaDataGridResponse | null>(null)
   const [attendanceTarget, setAttendanceTarget] = useState<ReservaDataGridResponse | null>(null)
 
-  const [actionError,      setActionError]      = useState('')
-  const [actionSuccess,    setActionSuccess]    = useState('')
+  const { toasts, dismiss, toast } = useToast()
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -105,40 +105,31 @@ export default function AgendaPage() {
 
   const registerAttendance = useMutation({
     mutationFn: (reservaId: number) => reservaApi.updateAsistencia(reservaId, {}).then((r) => r.data),
-    onSuccess: () => { invalidateAgenda(); setActionSuccess('Asistencia registrada. Estado cambiado a EN ESPERA.') },
-    onError:   (e) => setActionError(getApiError(e)),
+    onSuccess: () => { invalidateAgenda(); toast('success', 'Asistencia registrada. Estado cambiado a EN ESPERA.') },
+    onError:   (e) => toast('error', getApiError(e)),
     onSettled: () => setAttendanceTarget(null),
   })
 
   const cancelReservation = useMutation({
     mutationFn: ({ reservaId, data }: { reservaId: number; data: CancelRequest }) =>
       reservaApi.anular(reservaId, data).then((r) => r.data),
-    onSuccess: () => { invalidateAgenda(); setActionSuccess('Reserva anulada correctamente.') },
-    onError:   (e) => setActionError(getApiError(e)),
+    onSuccess: () => { invalidateAgenda(); toast('success', 'Reserva anulada correctamente.') },
+    onError:   (e) => toast('error', getApiError(e)),
     onSettled: () => setCancelTarget(null),
   })
 
   const rescheduleReservation = useMutation({
     mutationFn: ({ reservaId, data }: { reservaId: number; data: RescheduleRequest }) =>
       reservaApi.reagendar(reservaId, data).then((r) => r.data),
-    onSuccess: () => { invalidateAgenda(); setActionSuccess('Reserva reagendada correctamente.') },
-    onError:   (e) => setActionError(getApiError(e)),
+    onSuccess: () => { invalidateAgenda(); toast('success', 'Reserva reagendada correctamente.') },
+    onError:   (e) => toast('error', getApiError(e)),
     onSettled: () => setRescheduleTarget(null),
   })
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const openCancel = (r: ReservaDataGridResponse) => {
-    setActionError(''); setActionSuccess('')
-    setCancelTarget(r)
-  }
-  const openReschedule = (r: ReservaDataGridResponse) => {
-    setActionError(''); setActionSuccess('')
-    setRescheduleTarget(r)
-  }
-  const openAttendance = (r: ReservaDataGridResponse) => {
-    setActionError(''); setActionSuccess('')
-    setAttendanceTarget(r)
-  }
+  const openCancel     = (r: ReservaDataGridResponse) => setCancelTarget(r)
+  const openReschedule = (r: ReservaDataGridResponse) => setRescheduleTarget(r)
+  const openAttendance = (r: ReservaDataGridResponse) => setAttendanceTarget(r)
 
   const onPageChange = (p: number) => {
     setPage(p)
@@ -183,8 +174,7 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {actionSuccess && <div className="mb-4"><Alert type="success">{actionSuccess}</Alert></div>}
-      {actionError   && <div className="mb-4"><Alert type="error">{actionError}</Alert></div>}
+      <ToastContainer toasts={toasts} dismiss={dismiss} />
 
       {/* Vista Tabla */}
       {viewMode === 'tabla' && (
